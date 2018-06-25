@@ -2,6 +2,8 @@ package com.sachin.project2.restController;
 
 import java.util.List;
 
+import javax.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,9 @@ public class C_UserController {
 	private C_User c_user;
 	@Autowired
 	private C_UserDAO c_userDAO;
+	
+	@Autowired
+	HttpSession session;
 	
 	@Autowired
 	private C_JobDAO c_jobDAO;
@@ -54,10 +59,10 @@ public class C_UserController {
 		}
 
 //	http://localhost:8081/CollaborationRestService/getUser/{email}
-	@RequestMapping("/getUser/{email}")
-	public ResponseEntity<C_User> getUser(@PathVariable String email)
+	@RequestMapping("/getUser/{login_name}")
+	public ResponseEntity<C_User> getUser(@PathVariable String login_name)
 	{
-		C_User c_user = c_userDAO.getUser(email);
+		C_User c_user = c_userDAO.getUser(login_name);
 		if(c_user == null)
 		{
 			c_user = new C_User();
@@ -85,6 +90,8 @@ public class C_UserController {
 		}
 		else
 		{
+			session.setAttribute("useremail", c_user.getUser_email());
+			session.setAttribute("login_name", c_user.getLogin_name());
 			c_user.setMessage("You Successfully logged in..");
 			return new ResponseEntity<C_User>(c_user, HttpStatus.OK);
 		}
@@ -95,7 +102,7 @@ public class C_UserController {
 	@PostMapping("/registerUser")
 	public ResponseEntity<C_User> registerUser(@RequestBody C_User c_user)
 	{
-		if(c_userDAO.getUser(c_user.getUser_email()) != null)
+		if(c_userDAO.getUser(c_user.getLogin_name()) != null)
 		{
 			c_user.setMessage("Email already exists.");
 			return new ResponseEntity<C_User>(c_user, HttpStatus.CONFLICT);
@@ -115,23 +122,23 @@ public class C_UserController {
 	
 	
 //	http://localhost:8081/CollaborationRestService/deleteUser
-	@DeleteMapping("/deleteUser/{email}")
-	public ResponseEntity<C_User> deleteUser(@PathVariable String email)
+	@DeleteMapping("/deleteUser/{login_name}")
+	public ResponseEntity<C_User> deleteUser(@PathVariable String login_name)
 	{
-		if(c_userDAO.getUser(email) == null)
+		if(c_userDAO.getUser(login_name) == null)
 		{
 			C_User c_user = new C_User();
 			c_user.setMessage("No c_user exists with this email..");
 			return new ResponseEntity<C_User>(c_user, HttpStatus.NOT_FOUND);
 		}
 		 
-		if(c_jobDAO.jobApplicationList(email).size() != 0)
+		if(c_jobDAO.jobApplicationList(login_name).size() != 0)
 		{
 			c_user.setMessage("Couldn't Deleted C_User as this C_User Has Applied for a Job..");
 			return new ResponseEntity<C_User>(c_user, HttpStatus.CONFLICT);
 		}
 		
-		if(c_userDAO.delete(email))
+		if(c_userDAO.delete(login_name))
 		{
 			c_user.setMessage("C_User Deleted Successfully");
 			return new ResponseEntity<C_User>(c_user, HttpStatus.OK);
@@ -148,7 +155,7 @@ public class C_UserController {
 	@PutMapping("/updateUser")
 	public ResponseEntity<C_User> updateUser(@RequestBody C_User c_user)
 	{
-		if(c_userDAO.getUser(c_user.getUser_email()) == null)
+		if(c_userDAO.getUser(c_user.getLogin_name()) == null)
 		{
 			c_user.setMessage("No c_user exists with this email..");
 			return new ResponseEntity<C_User>(c_user, HttpStatus.NOT_FOUND);
@@ -169,10 +176,10 @@ public class C_UserController {
 	
 	
 //	http://localhost:8081/CollaborationRestService/userJobList
-	@RequestMapping("/userJobList/{email}")
-	public ResponseEntity<List<C_Job_Application>> appliedJobList(@PathVariable String email)
+	@RequestMapping("/userJobList/{login_name}")
+	public ResponseEntity<List<C_Job_Application>> appliedJobList(@PathVariable String login_name)
 	{
-		List<C_Job_Application> userJobList = c_jobDAO.jobApplicationList(email);
+		List<C_Job_Application> userJobList = c_jobDAO.jobApplicationList(login_name);
 		if(userJobList.isEmpty())
 		{
 			 c_jobApplication.setMessage("You have not applied for any job yet..");

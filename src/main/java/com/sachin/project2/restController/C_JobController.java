@@ -2,6 +2,8 @@ package com.sachin.project2.restController;
 
 import java.util.List;
 
+import javax.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,8 @@ public class C_JobController {
 	private C_UserDAO c_userDAO;
 	@Autowired
 	private C_Job_Application c_job_application;
+	@Autowired
+	HttpSession httpSession;
 	
 	// http://localhost:8081/CollaborationRestService/c_job/list
 	@GetMapping("c_job/list")
@@ -45,6 +49,7 @@ public class C_JobController {
 	@PostMapping("c_job/saveJob")
 	public ResponseEntity<C_Job> saveJob(@RequestBody C_Job c_job)
 	{
+		String login_name=(String) httpSession.getAttribute("login_name");
 		C_Job j = c_jobDAO.get(c_job.getJob_id());
 		if(j != null)
 		{
@@ -53,6 +58,7 @@ public class C_JobController {
 			return new ResponseEntity<C_Job>(c_job, HttpStatus.CONFLICT);
 		}
 		
+	
 		if(c_jobDAO.save(c_job))
 		{
 			c_job.setMessage("C_Job Saved Successfully with Jobid: "+c_job.getJob_id());
@@ -170,7 +176,7 @@ public class C_JobController {
 		{
 			
 			// to check user exists or not
-			if(c_userDAO.getUser(c_job_application.getJobApp_email())==null)
+			if(c_userDAO.getUser(c_job_application.getLogin_name())==null)
 			{
 				c_job_application.setMessage("no user found with this emailid");
 				return new ResponseEntity<C_Job_Application>(c_job_application, HttpStatus.NOT_FOUND);
@@ -188,7 +194,7 @@ public class C_JobController {
 				return new ResponseEntity<C_Job_Application>(c_job_application, HttpStatus.NOT_FOUND);
 			}
 			// if you already applied, you can not apply again
-			if (c_jobDAO.get(c_job_application.getJobApp_email(), c_job_application.getJob_id())!=null) {
+			if (c_jobDAO.get(c_job_application.getLogin_name(), c_job_application.getJob_id())!=null) {
 				c_job_application.setMessage("user already applied job with this emailid");
 				return new ResponseEntity<C_Job_Application>(c_job_application, HttpStatus.NOT_ACCEPTABLE);
 			}
