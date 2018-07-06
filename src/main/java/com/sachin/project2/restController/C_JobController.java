@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,6 +46,13 @@ public class C_JobController {
 	return new ResponseEntity<List<C_Job>>(c_jobDAO.list(),HttpStatus.OK);	
 	}
 	
+	// http://localhost:8081/CollaborationRestService/c_job/appliedUsers/{job_id}
+		@GetMapping("c_job/appliedUsers/{job_id}")
+		public ResponseEntity<List<C_Job_Application>> getAppliedUsers(@PathVariable int job_id)
+		{
+		return new ResponseEntity<List<C_Job_Application>>(c_jobDAO.list(job_id),HttpStatus.OK);	
+		}
+	
 //	http://localhost:8081/CollaborationRestService/c_job/saveJob
 	@PostMapping("c_job/saveJob")
 	public ResponseEntity<C_Job> saveJob(@RequestBody C_Job c_job)
@@ -61,13 +69,13 @@ public class C_JobController {
 	
 		if(c_jobDAO.save(c_job))
 		{
-			c_job.setMessage("C_Job Saved Successfully with Jobid: "+c_job.getJob_id());
+			c_job.setMessage("C_Job Saved Successfully");
 			return new ResponseEntity<C_Job>(c_job, HttpStatus.OK);
 		}
 		else
 		{
 			c_job = new C_Job();
-			c_job.setMessage("Cannot post C_Job right now with Jobid: "+c_job.getJob_id()+", please try again later..");
+			c_job.setMessage("Cannot post C_Job right now  please try again later..");
 			return new ResponseEntity<C_Job>(c_job, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -130,18 +138,18 @@ public class C_JobController {
 	
 	
 	//http://localhost:8081/CollaborationRestService/deleteJob/{jobid}	
-		@DeleteMapping("/deleteJob/{jobid}")
-		public ResponseEntity<C_Job> deleteJob(@PathVariable int jobid)
+		@DeleteMapping("/deleteJob/{job_id}")
+		public ResponseEntity<C_Job> deleteJob(@PathVariable int job_id)
 		{
-			C_Job j = c_jobDAO.get(jobid);
+			C_Job j = c_jobDAO.get(job_id);
 			if(j == null)
 			{
 				c_job = new C_Job();
-				c_job.setMessage("C_Job doesn't Exists with JobID: "+jobid);
+				c_job.setMessage("C_Job doesn't Exists with JobID: "+job_id);
 				return new ResponseEntity<C_Job>(c_job, HttpStatus.CONFLICT);
 			}
 			
-			List<C_Job_Application> appliedJobs = c_jobDAO.list(jobid);
+			List<C_Job_Application> appliedJobs = c_jobDAO.list(job_id);
 			if(!appliedJobs.isEmpty())
 			{
 				c_job = new C_Job();
@@ -149,15 +157,15 @@ public class C_JobController {
 				return new ResponseEntity<C_Job>(c_job, HttpStatus.CONFLICT);
 			}
 			
-			if(c_jobDAO.deleteJob(jobid))
+			if(c_jobDAO.deleteJob(job_id))
 			{
-				c_job.setMessage("C_Job Deleted Successfully with Jobid: "+jobid);
+				c_job.setMessage("C_Job Deleted Successfully with Jobid: "+job_id);
 				return new ResponseEntity<C_Job>(c_job, HttpStatus.OK);
 			}
 			else
 			{
 				c_job = new C_Job();
-				c_job.setMessage("Cannot delete C_Job with Jobid: "+jobid+", please try again later..");
+				c_job.setMessage("Cannot delete C_Job with Jobid: "+job_id+", please try again later..");
 				return new ResponseEntity<C_Job>(c_job, HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		}
@@ -170,15 +178,21 @@ public class C_JobController {
 		
 
 		
-//		http://localhost:8081/CollaborationRestService/jobRegistration
-		@PostMapping("/jobRegistration")
-		public ResponseEntity<C_Job_Application> jobRegistration(@RequestBody C_Job_Application c_job_application)
+//		http://localhost:8081/CollaborationRestService/jobRegistration/{job_id}
+		@PostMapping("/jobRegistration/{job_id}")
+		public ResponseEntity<C_Job_Application> jobRegistration(@PathVariable int job_id)
 		{
-			
+			String login_name=(String) httpSession.getAttribute("login_name");
+			String emailid=(String) httpSession.getAttribute("useremail");
+			c_job_application.setJob_id(job_id);
+			c_job_application.setEmailid(emailid);
+			C_Job jobb=	c_jobDAO.get(job_id);
+			c_job_application.setJobapp_title(jobb.getJob_title());
+			c_job_application.setLogin_name(login_name);
 			// to check user exists or not
 			if(c_userDAO.getUser(c_job_application.getLogin_name())==null)
 			{
-				c_job_application.setMessage("no user found with this emailid");
+				c_job_application.setMessage("no user found with this login name");
 				return new ResponseEntity<C_Job_Application>(c_job_application, HttpStatus.NOT_FOUND);
 			}
 			
@@ -210,6 +224,39 @@ public class C_JobController {
 			}
 		}
 		
+		// http://localhost:8081/CollaborationRestService/c_job/applicationList
+		@GetMapping("c_job/applicationList")
+		public ResponseEntity<List<C_Job_Application>> getAllJobsApplications()
+		{
+		return new ResponseEntity<List<C_Job_Application>>(c_jobDAO.applicationlist(),HttpStatus.OK);	
+		}
 		
-	
+		// http://localhost:8081/CollaborationRestService/c_job/approveApplication/
+		@PutMapping("c_job/approveApplication/{jobApp_Id}")
+		public ResponseEntity<C_Job_Application> approveApplications(@PathVariable int jobApp_Id)
+		{
+			
+			C_Job_Application app=	c_jobDAO.getApplication(jobApp_Id);
+			app.setJobApp_status('A');
+			app.setReason("not mentioned");
+			if(c_jobDAO.update(app))
+			{
+				return new ResponseEntity<C_Job_Application>(app,HttpStatus.OK);
+			}
+			return new ResponseEntity<C_Job_Application>(app,HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		// http://localhost:8081/CollaborationRestService/c_job/rejectApplication/
+		@PutMapping("c_job/rejectApplication/{jobApp_Id}")
+		public ResponseEntity<C_Job_Application> rejectApplications(@PathVariable int jobApp_Id)
+		{
+			
+			C_Job_Application app=	c_jobDAO.getApplication(jobApp_Id);
+			app.setJobApp_status('R');
+			app.setReason("not mentioned");
+			if(c_jobDAO.update(app))
+			{
+				return new ResponseEntity<C_Job_Application>(app,HttpStatus.OK);
+			}
+			return new ResponseEntity<C_Job_Application>(app,HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 }
